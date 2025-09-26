@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Sorteo Flask 🎉</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+</head>
+
+<body>
+
+  <!-- LOGO -->
+  <img src="{{ url_for('static', filename='logo.png') }}" class="logo">
+
+  <!-- TÍTULO -->
+  <h1>🎲 Sorteo VI Congreso Tributa Ecuador 2025</h1>
+
+  <div class="contenedor-principal">
+    <!-- Área izquierda para el ganador -->
+    <div class="area-ganador">
+      <img src="{{ url_for('static', filename='BANNER-JR.png') }}" class="imagen-espera" id="imagen-espera">
+      <div class="ganador-contenido" id="ganador-contenido">
+        <!-- Aquí se mostrará el ganador -->
+      </div>
+    </div>
+
+    <!-- Área derecha para la ruleta -->
+    <div class="ruleta-container">
+      <div class="ruleta" id="animacion">
+        <div class="numero">0000</div>
+        <div class="resplandor"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÓN DE SORTEO -->
+  <button id="sortear-btn">
+    <span class="btn-icon">🎯</span>
+    <span class="btn-text">Sortear</span>
+  </button>
+
+  <!-- SONIDO -->
+  <audio id="sonido" src="{{ url_for('static', filename='sonido.mp3') }}"></audio>
+
+  <!-- JS: ANIMACIÓN Y FETCH -->
+  <script>
+    const anim = document.getElementById("animacion");
+    const sonido = document.getElementById("sonido");
+
+    // Recibir los IDs de Flask
+    const idsDisponibles = JSON.parse('{{ ids|tojson|safe }}');
+
+    document.getElementById("sortear-btn").addEventListener("click", () => {
+      sonido.play();
+      const ruleta = document.querySelector('.ruleta');
+      const resplandor = document.querySelector('.resplandor');
+      const numeroElement = document.querySelector('.numero');
+
+      // Activar resplandor
+      resplandor.style.opacity = '1';
+
+      // Añadir animación de giro
+      ruleta.style.animation = 'girar 0.5s linear infinite';
+
+      let i = 0;
+      const interval = setInterval(() => {
+        // Seleccionar un ID aleatorio de la lista de IDs disponibles
+        const randomIndex = Math.floor(Math.random() * idsDisponibles.length);
+        numeroElement.textContent = idsDisponibles[randomIndex];
+        i++;
+        if (i > 20) {
+          clearInterval(interval);
+          // Detener animación de giro
+          ruleta.style.animation = 'none';
+          // Reducir resplandor
+          resplandor.style.opacity = '0.3';
+
+          fetch("/sortear")
+            .then(res => res.json())
+            .then(data => {
+              // Ocultar la imagen de espera
+              document.getElementById('imagen-espera').style.opacity = '0';
+
+              // Mostrar el número final
+              numeroElement.textContent = data.ID;
+
+              // Mostrar el contenido del ganador
+              const ganadorContenido = document.getElementById('ganador-contenido');
+              ganadorContenido.innerHTML = `
+                            <div class="ganador">
+                                <h2>ID: ${data.ID}</h2>
+                                <h3>👤 ${data.Nombre}</h3>
+                            </div>`;
+              ganadorContenido.style.opacity = '1';
+
+              // Lanzar confeti
+              confetti({
+                particleCount: 100,
+                spread: 160,
+                origin: { y: 0.6 },
+                colors: ['#157fff', '#005dcc', '#FFD700', '#FF6B6B']
+              });
+            });
+        }
+      }, 100);
+    });
+  </script>
+
+  <!-- JS: ACTIVAR PANTALLA COMPLETA CON LA TECLA F -->
+  <script>
+    document.addEventListener("keydown", function (event) {
+      if (event.key.toLowerCase() === "f") {
+        const elem = document.documentElement;
+        if (!document.fullscreenElement) {
+          elem.requestFullscreen().catch(err => {
+            console.warn(`Error al activar pantalla completa: ${err.message}`);
+          });
+        } else {
+          document.exitFullscreen();
+        }
+      }
+    });
+  </script>
+
+</body>
+
+</html>
